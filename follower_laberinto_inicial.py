@@ -16,8 +16,8 @@ class Bot:
         self.ultrasonido = "Proximity_sensor"
         self.mot_Izq = "DynamicLeftJoint"
         self.mot_Der = "DynamicRightJoint"
-        self.laser_frente = "Laser_D_frente"
-        self.laser_atras = "Laser_D_atras"
+        self.laser_Izq = "Laser_I"
+        self.laser_Der = "Laser_D"
         self.ip = ip
         self.port = port
         self.velI = 0.03
@@ -35,13 +35,11 @@ class Bot:
         self.distwallfront = 0.20
         self.tiempogiro90 = 0
         self.tiempocurva = 0
-        self.v = 0.1
+        self.v = 0.025
         self.b = 0.058#distancia centro a la llanta
         self.len_celda = 0.5 #longitud de celda
-        self.dwall = 0.195
-        self.dtol = 0.09
-        #distancia entre sensores laser
-        self.dist_sensors = 0.05
+        self.dwall = 0.14
+        self.dtol = 0.05
 
         self.connect()
         self.init_elements()
@@ -68,15 +66,15 @@ class Bot:
         _, self.camSup = sim.simxGetObjectHandle(self.clientID, self.camaraSuperior, sim.simx_opmode_oneshot_wait)
         _, self.ultra = sim.simxGetObjectHandle(self.clientID, self.ultrasonido, sim.simx_opmode_oneshot_wait)
 
-        _, self.laserF = sim.simxGetObjectHandle(self.clientID,self.laser_frente, sim.simx_opmode_oneshot_wait)
-        _, self.laserA = sim.simxGetObjectHandle(self.clientID,self.laser_atras, sim.simx_opmode_oneshot_wait)
+        _, self.laserI = sim.simxGetObjectHandle(self.clientID,self.laser_Izq, sim.simx_opmode_oneshot_wait)
+        _, self.laserD = sim.simxGetObjectHandle(self.clientID,self.laser_Der, sim.simx_opmode_oneshot_wait)
 
         imgL = self.sensor_ir(self.camLeft)
         imgM = self.sensor_ir(self.camMid)
         imgR = self.sensor_ir(self.camRight)
         img = self.get_image(self.camSup)
-        self.get_distance(self.laserF,self.maxlaser)
-        self.get_distance(self.laserA,self.maxlaser)
+        self.get_distance(self.laserI,self.maxlaser)
+        self.get_distance(self.laserD,self.maxlaser)
         self.get_distance(self.ultra, self.dmax*2)
         time.sleep(1)
 
@@ -123,13 +121,9 @@ class Bot:
         return False
 
     def muroDerecha(self):
-        dlF = self.get_distance(self.laserF, self.maxlaser*2)
-        dlA = self.get_distance(self.laserA, self.maxlaser*2)
+        dlD = self.get_distance(self.laserD, self.maxlaser*2)
 
-        d = (dlF + dlA)/2.0
-        print(" d: {} , dF: {} , dA: {}".format(d, dlF, dlA) )
-
-        return  abs( d - self.dwall) < self.dtol
+        return abs(dlD - self.dwall) < self.dtol
 
     def meta(self):
         imgL = self.sensor_ir(self.camLeft)
@@ -151,7 +145,8 @@ class Bot:
         3: pared al costo no detectada, curva 90
         4: parar
         '''
-
+        if(self.meta()):
+            self.estado == 4 #llego a la meta
         if(self.estado == 1 ):
             self.lastime =  self.tiempoSimulador()
             if( self.muroFrente()):
@@ -166,10 +161,7 @@ class Bot:
             tiempoCorriendo = (self.tiempoSimulador() - self.lastime ) > self.tiempocurva
             if(self.muroDerecha() and tiempoCorriendo):
                 self.estado = 1
-
-        if(self.meta()):
-            self.estado == 4 #llego a la meta
-        print("estado: {}, tiempo simulador: {}".format(self.estado, self.tiempoSimulador()), end=' ')
+        print("estado: {}, tiempo simulador: {}".format(self.estado, self.tiempoSimulador()))
 
     def aplicar_estado(self):
 
@@ -188,22 +180,15 @@ class Bot:
 
     def seguirMuro(self):
         print("seguir muro")
-        dlF = self.get_distance(self.laserF, self.maxlaser*2)
-        dlA = self.get_distance(self.laserA, self.maxlaser*2)
-        dR = (dlF + dlA)/2.0
-        ang_base = math.atan((dlF - dlA)/ self.dist_sensors)
-        error = dR - self.dwall
-        ki = 0.01
-        alfa = ang_base + ki*error
-        e = 0.151
-        wL = (math.cos(alfa) +(self.b/e )*math.sin(alfa))*self.v/self.radio_rueda
-        wR = (math.cos(alfa) - (self.b/e )*math.sin(alfa))*self.v/self.radio_rueda
-        print("wL: {}, wR: {}".format(wL,wR))
+        vl = self.v
+        vr = self.v
+        wL = vl/self.radio_rueda
+        wR = vr/self.radio_rueda
         return (wL, wR)
 
     def girar90(self):
         print("girar 90")
-        vel = 0.025 / 4
+        vel = self.v / 4
         self.tiempogiro90 = (self.b*(math.pi /2)/vel)
         print("Tiempo de giro: {}".format(self.tiempogiro90))
         wL = -vel/self.radio_rueda
@@ -211,13 +196,12 @@ class Bot:
         return (wL, wR)
 
     def girar_curva(self):
-
-        vcurva = 0.02
+        print("girar curva")
+        vcurva = self.v/2
         w = (vcurva)/(self.len_celda/2)
         wL = (vcurva + self.b*w)/self.radio_rueda
         wR = (vcurva - self.b*w)/self.radio_rueda
         self.tiempocurva = ((math.pi/2)*(self.len_celda/2)) /vcurva
-        print("girar curva, tiempocurva: {}".format(self.tiempocurva))
         return (wL, wR)
 
     def sensor_ir(self, idcam):
