@@ -101,7 +101,7 @@ class Bot:
         return img[0] > 40
 
     def vel_follow(self):
-        v = 0.01
+        v = 0.01 # velocidad del robot
         enew = 0
         eold = 0
         kp , kd , ki = 0.01 , 0.001 ,  0

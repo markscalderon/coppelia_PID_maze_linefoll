@@ -38,8 +38,8 @@ class Bot:
         self.v = 0.1
         self.b = 0.058#distancia centro a la llanta
         self.len_celda = 0.5 #longitud de celda
-        self.dwall = 0.195
-        self.dtol = 0.09
+        self.dwall = 0.2
+        self.dtol = 0.1
         #distancia entre sensores laser
         self.dist_sensors = 0.05
 

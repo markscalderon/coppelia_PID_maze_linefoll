@@ -79,7 +79,7 @@ class Bot:
             return
 
         list_estados = []
-        model = load_model("model")
+        model = load_model("modelrobotica")
         cont = 0
         while(1):
             img = self.get_image(self.camSup)
@@ -91,7 +91,10 @@ class Bot:
             image = image.reshape(-1, 32, 32, 3)
 
             prediction = np.argmax(model.predict(image))
-            print("model pred: {}".format(prediction  ),end=" ")
+
+            print("model pred: {}".format(prediction ),end=" ")
+
+
 
             tecla = cv2.waitKey(5) & 0xFF
             if tecla == 27:

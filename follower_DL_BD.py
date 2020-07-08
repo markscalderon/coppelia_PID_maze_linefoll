@@ -120,10 +120,10 @@ class Bot:
         imgR = self.sensor_ir(self.camRight)
 
         #estados"
-        #    1: izquierda
-        #    2: centro
-        #    3: derecha
-        #    4: parar
+        #    0: izquierda
+        #    1: centro
+        #    2: derecha
+        #    3: parar
         if((imgM == False and imgL == False) and imgR == False):#estado 2(velocidad normal)
             vL ,vD = v,v
             self.estado = 1
